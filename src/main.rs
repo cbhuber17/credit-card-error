@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io};
 
 fn main() {
     let credit_cards = HashMap::from([
@@ -6,4 +6,12 @@ fn main() {
         ("Tim", "1234567 06 27 123"),
         ("Bob", "1234567 12 27 123"),
     ]);
+
+    println!("Enter name:");
+
+    let mut name = String::new();
+
+    io::stdin()
+        .read_line(&mut name)
+        .expect("Failed to read line");
 }
