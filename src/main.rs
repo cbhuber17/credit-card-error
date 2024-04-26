@@ -14,10 +14,12 @@ struct Card {
 }
 
 fn main() {
+    env_logger::init();
+
     let credit_cards = HashMap::from([
         ("Amy", "1234567 04 25 123"),
-        ("Tim", "1234567 06 27 123"),
-        ("Bob", "1234567 12 27 123"),
+        ("Tim", "1234567 0616 123"),
+        ("Bob", "1234567 Dec 08 123"),
     ]);
 
     println!("Enter name:");
@@ -32,16 +34,36 @@ fn main() {
 
     match result {
         Ok(card) => println!("\nCredit card info: {card:?}"),
-        Err(err) => println!("{err}"),
+        Err(err) => {
+            match &err {
+                CreditCardError::InvalidInput(msg) => println!("{msg}"),
+                CreditCardError::Other(_, _) => {
+                    println!("\nSomething went wrong, please try again.")
+                }
+            }
+            log::error!("\n{err:?}");
+        }
     }
 }
 
-fn get_credit_card_info(credit_cards: &HashMap<&str, &str>, name: &str) -> Result<Card, String> {
+#[derive(Debug)]
+enum CreditCardError {
+    InvalidInput(String),
+    Other(String, String),
+}
+
+fn get_credit_card_info(
+    credit_cards: &HashMap<&str, &str>,
+    name: &str,
+) -> Result<Card, CreditCardError> {
     let card_string = credit_cards
         .get(name)
-        .ok_or(format!("No credit card was found for {name}."))?;
+        .ok_or(CreditCardError::InvalidInput(format!(
+            "No credit card was found for {name}."
+        )))?;
 
-    let card = parse_card(card_string)?;
+    let card = parse_card(card_string)
+        .map_err(|e| CreditCardError::Other(e, format!("{name}'s could not be parsed.")))?;
 
     Ok(card)
 }
