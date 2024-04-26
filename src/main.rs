@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io};
+use std::{collections::HashMap, io, num::ParseIntError};
 
 #[derive(Debug)]
 struct Expiration {
@@ -30,39 +30,52 @@ fn main() {
 
     let result = get_credit_card_info(&credit_cards, name.trim());
 
-    println!("\nCredit card info: {result:?}");
+    match result {
+        Ok(card) => println!("\nCredit card info: {card:?}"),
+        Err(err) => println!("{err}"),
+    }
 }
 
-fn get_credit_card_info(credit_cards: &HashMap<&str, &str>, name: &str) -> Card {
-    let card_string = credit_cards.get(name).unwrap();
+fn get_credit_card_info(credit_cards: &HashMap<&str, &str>, name: &str) -> Result<Card, String> {
+    let card_string = credit_cards
+        .get(name)
+        .ok_or(format!("No credit card was found for {name}."))?;
 
-    let card = parse_card(card_string);
+    let card = parse_card(card_string)?;
 
-    card
+    Ok(card)
 }
 
-fn parse_card(card: &str) -> Card {
-    let mut numbers = parse_card_numbers(card);
+fn parse_card(card: &str) -> Result<Card, String> {
+    let mut numbers = parse_card_numbers(card).map_err(|e| e.to_string())?;
+
+    let len = numbers.len();
+    let expected_len = 4;
+
+    if len != expected_len {
+        return Err(format!(
+            "Incorrect number of elements parsed. Expected {expected_len} but got {len}. Elements: {numbers:?}."
+        ));
+    }
 
     let cvv = numbers.pop().unwrap();
     let year = numbers.pop().unwrap();
     let month = numbers.pop().unwrap();
     let number = numbers.pop().unwrap();
 
-    Card {
+    Ok(Card {
         number,
         exp: Expiration { year, month },
         cvv,
-    }
+    })
 }
 
-fn parse_card_numbers(card: &str) -> Vec<u32> {
+fn parse_card_numbers(card: &str) -> Result<Vec<u32>, ParseIntError> {
     let numbers = card
         .split(" ")
         .into_iter()
         .map(|s| s.parse())
-        .collect::<Result<Vec<u32>, _>>()
-        .unwrap();
+        .collect::<Result<Vec<u32>, _>>()?;
 
-    numbers
+    Ok(numbers)
 }
